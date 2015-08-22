@@ -1,9 +1,11 @@
 NAME = 'Cooking Channel'
 PREFIX = '/video/cookingchannel'
-BASE_URL = 'http://www.cookingchanneltv.com'
+ART = 'art-default.jpg'
+ICON = 'icon-default.png'
 
+BASE_URL = 'http://www.cookingchanneltv.com'
 FULLEP_URL = 'http://www.cookingchanneltv.com/full-episodes'
-SHOW_LINKS_URL = 'http://www.hgtv.com/shows/shows-a-z'
+SHOW_LINKS_URL = 'http://www.cookingchanneltv.com/shows/a-z.html'
 
 SMIL_NS = {'a': 'http://www.w3.org/2005/SMIL21/Language'}
 
@@ -11,6 +13,8 @@ SMIL_NS = {'a': 'http://www.w3.org/2005/SMIL21/Language'}
 def Start():
 
     ObjectContainer.title1 = NAME
+    ObjectContainer.art = R(ART)
+    DirectoryObject.thumb = R(ICON)
     HTTP.CacheTime = CACHE_1HOUR
 
 ####################################################################################################
@@ -20,12 +24,12 @@ def MainMenu():
     oc = ObjectContainer()
 
     oc.add(DirectoryObject(key = Callback(FullEpMenu, title='Full Episodes'), title='Full Episodes'))
-    #oc.add(DirectoryObject(key = Callback(Alphabet, title='All HGTV Shows'), title='All HGTV Shows'))
+    oc.add(DirectoryObject(key = Callback(Alphabet, title='All Cooking Channel Shows'), title='All Cooking Channel Shows'))
 
     return oc
 
 ####################################################################################################
-# This function produces a list of shows from the HGTV full episodes page
+# This function produces a list of shows from the Cooking Channel full episodes page
 @route(PREFIX + '/fullepmenu')
 def FullEpMenu(title):
 
@@ -37,14 +41,13 @@ def FullEpMenu(title):
         try: summary = item.xpath('.//h4/a/span//text()')[0]
         except: summary = ''
         # TODO Figure out thumbs for shows
-        thumb = ''
+        #thumb = ''
         url = BASE_URL + item.xpath('./div/h4/a/@href')[0]
 
         oc.add(DirectoryObject(
             key = Callback(VideoBrowse, url=url, title=title),
             title = title,
             summary = summary,
-            thumb = Resource.ContentsOfURLWithFallback(url=thumb)
         ))
 
     # sort shows in alphabetical order here
@@ -55,84 +58,84 @@ def FullEpMenu(title):
     else:
         return oc
 
-#####################################################################################################
-## A to Z pull for HGTV shows
-#@route(PREFIX + '/alphabet')
-#def Alphabet(title):
-#
-#    oc = ObjectContainer(title2=title)
-#
-#    for char in HTML.ElementFromURL(SHOW_LINKS_URL).xpath('//section[@class="site-index"]/h2//text()'):
-#
-#        oc.add(DirectoryObject(key=Callback(AllShows, char=char), title=char))
-#    
-#    if len(oc) < 1:
-#        return ObjectContainer(header='Empty', message='There are no shows to list')
-#    else:
-#        return oc
-#
-#####################################################################################################
-## This function produces a list of all HGTV Shows based on letter chosen in Alphabet function
-#@route(PREFIX + '/allshows')
-#def AllShows(char):
-#
-#    oc = ObjectContainer(title2=char)
-#
-#    for show in HTML.ElementFromURL(SHOW_LINKS_URL).xpath('//h2[@id="%s"]/following-sibling::ul/li/a' % (char.lower())):
-#
-#        title = show.text
-#        show_url = show.xpath('./@href')[0]
-#
-#        oc.add(DirectoryObject(
-#            key = Callback(GetVideoLinks, show_url=show_url, title=title),
-#            title = title
-#        ))
-#
-#    if len(oc) < 1:
-#        return ObjectContainer(header='Empty', message='There are no shows to list')
-#    else:
-#        return oc
-#
-#####################################################################################################
-## This function pulls the video and full episode links from a show's main page
-#@route(PREFIX + '/getvideolinks')
-#def GetVideoLinks(title, show_url):
-#
-#    oc = ObjectContainer(title2=title)
-#    data = HTML.ElementFromURL(show_url)
-#
-#    try:
-#        video_url = data.xpath('//div[@class="sub-navigation"]//a[contains(text(), "Videos")]/@href')[0]
-#
-#        oc.add(DirectoryObject(
-#            key = Callback(VideoBrowse, url=video_url, title='Videos'),
-#            title = 'Videos'
-#        ))
-#
-#    except:
-#        pass
-#
-#    # there can be more than one full episode link here if there are multiple seasons so make it a list and loop thru
-#    try:
-#        fullep_list = data.xpath('//div[@class="sub-navigation"]//a[contains(text(), "Full Episodes")]')
-#
-#        for item in fullep_list:
-#
-#            fullep_url = item.xpath('./@href')[0]
-#            full_title = item.xpath('.//text()')[0]
-#
-#            oc.add(DirectoryObject(
-#                key = Callback(VideoBrowse, url=fullep_url, title=full_title),
-#                title = full_title
-#            ))
-#
-#    except:
-#        pass
-#
-#    if len(oc) < 1:
-#        return ObjectContainer(header='No Videos', message='This show does not have a video page')
-#    else:
-#        return oc
+####################################################################################################
+# A to Z pull for Cooking Channel shows
+@route(PREFIX + '/alphabet')
+def Alphabet(title):
+
+    oc = ObjectContainer(title2=title)
+
+    #for char in HTML.ElementFromURL(SHOW_LINKS_URL).xpath('//section[@class="site-index"]/h2//text()'):
+    for char in HTML.ElementFromURL(SHOW_LINKS_URL).xpath('//span[@class="letter"]/text()'):
+        oc.add(DirectoryObject(key=Callback(AllShows, char=char), title=char))
+    
+    if len(oc) < 1:
+        return ObjectContainer(header='Empty', message='There are no shows to list')
+    else:
+        return oc
+
+####################################################################################################
+# This function produces a list of all Cooking Channel Shows based on letter chosen in Alphabet function
+@route(PREFIX + '/allshows')
+def AllShows(char):
+
+    oc = ObjectContainer(title2=char)
+
+    for show in HTML.ElementFromURL(SHOW_LINKS_URL).xpath('//span[@class="letter"]/following-sibling::ul/li/a' % (char.lower())):
+
+        title = show.text
+        show_url = BASE_URL + show.xpath('./@href')[0]
+
+        oc.add(DirectoryObject(
+            key = Callback(GetVideoLinks, show_url=show_url, title=title),
+            title = title
+        ))
+
+    if len(oc) < 1:
+        return ObjectContainer(header='Empty', message='There are no shows to list')
+    else:
+        return oc
+
+####################################################################################################
+# This function pulls the video and full episode links from a show's main page
+@route(PREFIX + '/getvideolinks')
+def GetVideoLinks(title, show_url):
+
+    oc = ObjectContainer(title2=title)
+    data = HTML.ElementFromURL(show_url)
+
+    try:
+        video_url = data.xpath('//div[@class="sub-navigation"]//a[contains(text(), "Videos")]/@href')[0]
+
+        oc.add(DirectoryObject(
+            key = Callback(VideoBrowse, url=video_url, title='Videos'),
+            title = 'Videos'
+        ))
+
+    except:
+        pass
+
+    # there can be more than one full episode link here if there are multiple seasons so make it a list and loop thru
+    try:
+        fullep_list = data.xpath('//div[@class="sub-navigation"]//a[contains(text(), "Full Episodes")]')
+
+        for item in fullep_list:
+
+            fullep_url = item.xpath('./@href')[0]
+            full_title = item.xpath('.//text()')[0]
+
+            oc.add(DirectoryObject(
+                key = Callback(VideoBrowse, url=fullep_url, title=full_title),
+                title = full_title
+            ))
+
+    except:
+        pass
+
+    if len(oc) < 1:
+        return ObjectContainer(header='No Videos', message='This show does not have a video page')
+    else:
+        return oc
 
 ####################################################################################################
 # This function produces a list of videos for any page with a video player in it 
